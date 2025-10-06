@@ -1,4 +1,5 @@
 import os
+import shutil
 from pathlib import Path
 from huggingface_hub import snapshot_download
 
@@ -17,8 +18,6 @@ def download_and_validate(model_id, token, cache_dir):
 
     # Clean up any stale temp dir
     if temp_dir.exists():
-        import shutil
-
         shutil.rmtree(temp_dir)
 
     # Download

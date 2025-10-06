@@ -173,24 +173,20 @@ resource "kubernetes_deployment" "vllm" {
         container {
           name  = "vllm-container"
           image = "vllm/vllm-openai:latest"
-          env {
-            name  = "LD_LIBRARY_PATH"
-            value = "/usr/local/nvidia/lib64"
-          }
-          env {
-            name = "HF_TOKEN"
-            value_from {
-              secret_key_ref {
-                name = kubernetes_secret.hf_token.metadata[0].name
-                key  = "token"
-              }
-            }
-          }
           dynamic "env" {
-            for_each = var.vllm_use_flashinfer_moe ? [1] : []
+            for_each = local.vllm_env_vars
             content {
-              name  = "VLLM_USE_FLASHINFER_MOE_FP16"
-              value = "1"
+              name  = env.value.name
+              value = lookup(env.value, "value", null)
+              dynamic "value_from" {
+                for_each = env.value.value_from != null ? [1] : []
+                content {
+                  secret_key_ref {
+                    name = env.value.value_from.secret_key_ref.name
+                    key  = env.value.value_from.secret_key_ref.key
+                  }
+                }
+              }
             }
           }
           args = compact([

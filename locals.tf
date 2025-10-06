@@ -7,6 +7,7 @@ locals {
   cluster_name = "${var.name_prefix}-cluster"
   pvc_name     = "${var.name_prefix}-model-cache-pvc"
   secret_name  = "${var.name_prefix}-hf-secret"
+  job_name     = "${local.name_prefix}-model-downloader"
 
   # For Kubernetes, it's good practice to have a consistent app label.
   # We will derive the deployment and service names from this.

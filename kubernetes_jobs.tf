@@ -36,8 +36,8 @@ resource "time_sleep" "wait_for_job_deletion" {
 resource "kubernetes_job" "model_downloader_job" {
   wait_for_completion = false
   metadata {
-    name      = "${local.name_prefix}-model-downloader"
-    namespace = kubernetes_namespace.qwen.metadata[0].name
+    name      = local.job_name
+    namespace = local.name_prefix
   }
 
   spec {

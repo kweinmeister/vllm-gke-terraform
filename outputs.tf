@@ -34,7 +34,7 @@ output "cluster_ca_certificate" {
 
 output "model_downloader_job_status" {
   description = "Status information for the model downloader job"
-  value       = "Job ${local.name_prefix}-model-downloader is running. Check status with: kubectl get job -n ${local.name_prefix} ${local.name_prefix}-model-downloader"
+  value       = "Job ${local.job_name} is running. Check status with: kubectl get job -n ${local.name_prefix} ${local.job_name}"
 }
 
 output "scale_up_command" {
@@ -66,4 +66,9 @@ output "port_forward_command" {
 output "model_id" {
   description = "The Hugging Face model ID being used."
   value       = var.model_id
+}
+
+output "job_name" {
+  description = "The name of the model downloader Kubernetes job."
+  value       = local.job_name
 }
