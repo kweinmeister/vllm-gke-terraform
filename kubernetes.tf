@@ -54,8 +54,18 @@ resource "kubernetes_service" "vllm" {
       port        = 8000
       target_port = 8000
     }
-    # Change this from LoadBalancer to NodePort
-    type = "NodePort"
+    # Expose the service internally. The GKE Ingress will route traffic to this service.
+    type = "ClusterIP"
+  }
+}
+
+resource "kubernetes_config_map" "validate_cache_script" {
+  metadata {
+    name      = "${local.name_prefix}-validate-cache-script"
+    namespace = local.name_prefix
+  }
+  data = {
+    "validate-cache.sh" = file("${path.module}/scripts/validate-cache.sh")
   }
 }
 
@@ -64,7 +74,7 @@ resource "kubernetes_deployment" "vllm" {
     kubernetes_namespace.qwen,
     kubernetes_secret.hf_token,
     kubernetes_persistent_volume_claim.model_cache,
-    null_resource.model_downloader_job_trigger
+    kubernetes_job.model_downloader_job
   ]
 
   metadata {
@@ -124,7 +134,18 @@ resource "kubernetes_deployment" "vllm" {
           name    = "validate-model-cache"
           image   = "busybox:1.36"
           command = ["/bin/sh", "-c"]
-          args    = [file("${path.module}/scripts/validate-cache.sh")]
+          args    = ["/validate-cache.sh"]  # Run mounted script
+
+          resources {
+            requests = {
+              cpu    = "100m"
+              memory = "256Mi"
+            }
+            limits = {
+              cpu    = "200m"
+              memory = "512Mi"
+            }
+          }
 
           env {
             name  = "MODEL_ID"
@@ -138,9 +159,15 @@ resource "kubernetes_deployment" "vllm" {
             name  = "SPECULATIVE_MODEL_ID"
             value = var.speculative_model_id
           }
+
           volume_mount {
             name       = "model-cache"
             mount_path = "/root/.cache/huggingface"
+          }
+          volume_mount {
+            name       = "validate-script"
+            mount_path = "/validate-cache.sh"
+            sub_path   = "validate-cache.sh"
           }
         }
         container {
@@ -241,6 +268,13 @@ resource "kubernetes_deployment" "vllm" {
             claim_name = kubernetes_persistent_volume_claim.model_cache.metadata[0].name
           }
         }
+        volume {
+          name = "validate-script"
+          config_map {
+            name = kubernetes_config_map.validate_cache_script.metadata[0].name
+            default_mode = "0755"
+          }
+        }
       }
     }
   }
@@ -255,28 +289,5 @@ resource "kubernetes_secret" "hf_token" {
   }
   data = {
     token = var.hf_token
-  }
-}
-
-resource "kubernetes_ingress_v1" "vllm_ingress" {
-  depends_on = [kubernetes_service.vllm]
-  metadata {
-    name      = "${local.name_prefix}-ingress"
-    namespace = local.name_prefix
-    annotations = {
-      # This tells GKE to use the premium global external load balancer
-      "kubernetes.io/ingress.class" : "gce"
-    }
-  }
-
-  spec {
-    default_backend {
-      service {
-        name = kubernetes_service.vllm.metadata[0].name
-        port {
-          number = 8000
-        }
-      }
-    }
   }
 }

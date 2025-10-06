@@ -16,7 +16,7 @@ This Terraform module provisions:
 - A persistent volume (PVC) for caching Hugging Face models  
 - A Kubernetes Job to securely download models using your Hugging Face token  
 - A vLLM deployment with speculative decoding support  
-- A public **HTTP** endpoint via GCE Ingress  
+- An **internal-only** service, accessible via `kubectl port-forward`
 
 Each resource is named using your `name_prefix`, enabling safe multi-model deployments.
 
@@ -60,10 +60,10 @@ cd vllm-gke-terraform
 ### 2. Make scripts executable
 
 ```bash
-chmod +x scripts/*.sh
+chmod +x scripts/validate-cache.sh
 ```
 
-> ⚠️ Required: Terraform executes these scripts directly. Without `chmod +x`, `apply-model-download-job.sh` and `validate-cache.sh` will fail.
+> ⚠️ Required: The init container executes this script directly. Without `chmod +x`, `validate-cache.sh` will fail.
 
 ### 3. Configure the Terraform Backend
 
@@ -120,11 +120,11 @@ terraform plan
 terraform apply
 ```
 > This creates:
-> - A GKE cluster with spot/on-demand node pools  
-> - A PVC for model caching  
-> - A Kubernetes Job to download your model  
-> - A vLLM deployment (initially scaled to 0 replicas)  
-> - A public HTTP endpoint via GCE Ingress  
+> - A GKE cluster with spot/on-demand node pools
+> - A PVC for model caching
+> - A Kubernetes Job to download your model
+> - A vLLM deployment (initially scaled to 0 replicas)
+> - An internal Kubernetes service (no public IP)
 
 ### 5a. Configure `kubectl`
 
@@ -164,26 +164,42 @@ kubectl scale deployment -n $(terraform output -raw namespace) $(terraform outpu
 > The vLLM deployment is intentionally created with `replicas = 0` to avoid starting before the model is fully downloaded and validated.  
 > Scaling to `1` triggers the init container to verify the `.success` marker file in the PVC — ensuring the model is complete — before launching the inference server.
 
-### 8. Get the API endpoint
+### 8. Test the API via Port-Forward
 
-```bash
-terraform output ingress_ip
-```
+This deployment is designed for secure, internal access. Use `kubectl port-forward` to connect to the vLLM API.
 
-> Example output: `34.123.45.67`
+1.  **Get the Port-Forward Command**
 
-### 9. Test the API
+    Terraform provides the exact command as an output:
 
-```bash
-curl -X POST \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "Qwen/Qwen3-235B-A22B",
-    "prompt": "Explain quantum computing in one sentence.",
-    "max_tokens": 50
-  }' \
-  http://34.123.45.67/v1/completions
-```
+    ```bash
+    terraform output -raw port_forward_command
+    ```
+
+2.  **Run the Command**
+
+    Copy and paste the output from the previous step into your terminal. It will look like this:
+
+    ```bash
+    kubectl port-forward svc/qwen3-235b-vllm -n qwen3-235b 8000:8000
+    ```
+    
+    > This command forwards your local port `8000` to the service's port `8000` in the cluster. Keep this terminal running.
+
+3.  **Test the API**
+
+    In a **new terminal**, send a request to `localhost`:
+
+    ```bash
+    curl -X POST \
+      -H "Content-Type: application/json" \
+      -d '{
+        "model": "$(terraform output -raw model_id)",
+        "prompt": "Explain quantum computing in one sentence.",
+        "max_tokens": 50
+      }' \
+      http://localhost:8000/v1/completions
+    ```
 
 ---
 
@@ -260,7 +276,7 @@ terraform destroy
 
 **A**: Check logs:
 ```bash
-kubectl logs -n $(terraform output -raw namespace) -l job-name=$(terraform output -raw namespace)-model-downloader
+kubectl logs -n $(terraform output -raw namespace) -l job-name=$(terraform output -raw job_name)
 ```
 Common causes:
 - Invalid `hf_token` (missing permissions)
