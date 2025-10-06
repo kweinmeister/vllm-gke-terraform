@@ -76,6 +76,10 @@ variable "speculative_model_id" {
   description = "The Hugging Face model ID for the speculative draft model (e.g., 'nvidia/Qwen3-235B-A22B-Eagle3')."
   type        = string
   default     = "nvidia/Qwen3-235B-A22B-Eagle3"
+  validation {
+    condition     = !var.enable_speculative_decoding || (var.enable_speculative_decoding && length(var.speculative_model_id) > 0)
+    error_message = "When enable_speculative_decoding is true, speculative_model_id must not be empty."
+  }
 }
 
 variable "num_speculative_tokens" {
@@ -139,6 +143,12 @@ variable "vllm_hf_overrides" {
 
 variable "trust_remote_code" {
   description = "Set to true to trust remote code from the Hugging Face model repository. Required for some models, but should be enabled with caution."
+  type        = bool
+  default     = false
+}
+
+variable "vllm_use_flashinfer_moe" {
+  description = "Enable the FlashInfer CUTLASS MoE kernel for Mixture of Experts models."
   type        = bool
   default     = false
 }

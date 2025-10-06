@@ -25,10 +25,6 @@ output "deployment_name" {
   value       = local.deployment_name
 }
 
-output "ingress_ip" {
-  description = "External IP address of the GCE Ingress load balancer"
-  value       = kubernetes_ingress_v1.vllm_ingress.status[0].load_balancer[0].ingress[0].ip
-}
 
 output "cluster_ca_certificate" {
   description = "Cluster CA certificate"
@@ -38,7 +34,7 @@ output "cluster_ca_certificate" {
 
 output "model_downloader_job_status" {
   description = "Status information for the model downloader job"
-  value       = "Job ${local.name_prefix}-model-downloader is running. Check status with: kubectl get job -n ${local.name_prefix} ${local.name_prefix}-model-downloader"
+  value       = "Job ${local.job_name} is running. Check status with: kubectl get job -n ${local.name_prefix} ${local.job_name}"
 }
 
 output "scale_up_command" {
@@ -59,4 +55,20 @@ output "cluster_name" {
 output "region" {
   description = "The GCP region of the GKE cluster"
   value       = var.region
+}
+
+
+output "port_forward_command" {
+  description = "Run this command to access the vLLM API locally:"
+  value       = "kubectl port-forward svc/${local.service_name} -n ${local.name_prefix} 8000:8000"
+}
+
+output "model_id" {
+  description = "The Hugging Face model ID being used."
+  value       = var.model_id
+}
+
+output "job_name" {
+  description = "The name of the model downloader Kubernetes job."
+  value       = local.job_name
 }
