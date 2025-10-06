@@ -62,3 +62,8 @@ output "port_forward_command" {
   description = "Run this command to access the vLLM API locally:"
   value       = "kubectl port-forward svc/${local.service_name} -n ${local.name_prefix} 8000:8000"
 }
+
+output "model_id" {
+  description = "The Hugging Face model ID being used."
+  value       = var.model_id
+}

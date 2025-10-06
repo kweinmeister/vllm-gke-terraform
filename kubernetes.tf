@@ -134,7 +134,7 @@ resource "kubernetes_deployment" "vllm" {
           name    = "validate-model-cache"
           image   = "busybox:1.36"
           command = ["/bin/sh", "-c"]
-          args    = ["/validate-cache.sh"]  # Run mounted script
+          args    = ["/validate-cache.sh"]
 
           resources {
             requests = {
@@ -184,6 +184,13 @@ resource "kubernetes_deployment" "vllm" {
                 name = kubernetes_secret.hf_token.metadata[0].name
                 key  = "token"
               }
+            }
+          }
+          dynamic "env" {
+            for_each = var.vllm_use_flashinfer_moe ? [1] : []
+            content {
+              name  = "VLLM_USE_FLASHINFER_MOE_FP16"
+              value = "1"
             }
           }
           args = compact([
@@ -271,7 +278,7 @@ resource "kubernetes_deployment" "vllm" {
         volume {
           name = "validate-script"
           config_map {
-            name = kubernetes_config_map.validate_cache_script.metadata[0].name
+            name         = kubernetes_config_map.validate_cache_script.metadata[0].name
             default_mode = "0755"
           }
         }

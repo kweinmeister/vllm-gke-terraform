@@ -181,7 +181,7 @@ This deployment is designed for secure, internal access. Use `kubectl port-forwa
     Copy and paste the output from the previous step into your terminal. It will look like this:
 
     ```bash
-    kubectl port-forward svc/qwen3-235b-vllm -n qwen3-235b 8000:8000
+    kubectl port-forward svc/vllm-qwen3-235b -n qwen3-235b 8000:8000
     ```
     
     > This command forwards your local port `8000` to the service's port `8000` in the cluster. Keep this terminal running.
@@ -190,16 +190,16 @@ This deployment is designed for secure, internal access. Use `kubectl port-forwa
 
     In a **new terminal**, send a request to `localhost`:
 
-    ```bash
-    curl -X POST \
-      -H "Content-Type: application/json" \
-      -d '{
-        "model": "$(terraform output -raw model_id)",
-        "prompt": "Explain quantum computing in one sentence.",
-        "max_tokens": 50
-      }' \
-      http://localhost:8000/v1/completions
-    ```
+```bash
+curl -X POST \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"model\": \"$(terraform output -raw model_id)\",
+    \"prompt\": \"Explain quantum computing in one sentence.\",
+    \"max_tokens\": 50
+  }" \
+  http://localhost:8000/v1/completions
+```
 
 ---
 

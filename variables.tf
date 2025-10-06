@@ -142,3 +142,9 @@ variable "trust_remote_code" {
   type        = bool
   default     = false
 }
+
+variable "vllm_use_flashinfer_moe" {
+  description = "Enable the FlashInfer CUTLASS MoE kernel for Mixture of Experts models."
+  type        = bool
+  default     = false
+}

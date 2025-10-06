@@ -21,6 +21,16 @@ resource "null_resource" "job_triggers" {
   }
 }
 
+resource "time_sleep" "wait_for_job_deletion" {
+  create_duration = "30s"
+
+  triggers = {
+    # This sleep is triggered whenever the job would be replaced.
+    model_config_hash = null_resource.job_triggers.id
+    script_id         = kubernetes_config_map.model_downloader_script.id
+  }
+}
+
 
 # 2. Kubernetes Job to execute the download script.
 resource "kubernetes_job" "model_downloader_job" {
@@ -36,7 +46,7 @@ resource "kubernetes_job" "model_downloader_job" {
     template {
       metadata {}
       spec {
-        restart_policy = "OnFailure"
+        restart_policy                   = "OnFailure"
         termination_grace_period_seconds = 60
 
         volume {
@@ -48,7 +58,7 @@ resource "kubernetes_job" "model_downloader_job" {
         volume {
           name = "download-script"
           config_map {
-            name = kubernetes_config_map.model_downloader_script.metadata[0].name
+            name         = kubernetes_config_map.model_downloader_script.metadata[0].name
             default_mode = "0755"
           }
         }
@@ -119,6 +129,7 @@ resource "kubernetes_job" "model_downloader_job" {
     kubernetes_namespace.qwen,
     kubernetes_persistent_volume_claim.model_cache,
     kubernetes_secret.hf_token,
-    kubernetes_config_map.model_downloader_script
+    kubernetes_config_map.model_downloader_script,
+    time_sleep.wait_for_job_deletion
   ]
 }
