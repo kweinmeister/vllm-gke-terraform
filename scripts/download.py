@@ -60,7 +60,7 @@ if not base_model_id:
 if not download_and_validate(base_model_id, "Base Model", hf_token, HF_HOME):
     sys.exit(1)
 
-if os.environ.get("ENABLE_SPECULATIVE", "").lower() == "true":
+if os.environ.get("ENABLE_SPECULATIVE_DECODING", "").lower() == "true":
     spec_model_id = os.environ.get("SPECULATIVE_MODEL_ID")
     if spec_model_id:
         if not download_and_validate(
