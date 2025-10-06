@@ -1,0 +1,282 @@
+data "google_client_config" "default" {}
+
+data "google_container_cluster" "qwen_cluster" {
+  name     = local.cluster_name
+  location = var.zone
+  project  = var.project_id
+}
+
+provider "kubernetes" {
+  host                   = "https://${data.google_container_cluster.qwen_cluster.endpoint}"
+  token                  = data.google_client_config.default.access_token
+  cluster_ca_certificate = base64decode(data.google_container_cluster.qwen_cluster.master_auth[0].cluster_ca_certificate)
+}
+
+resource "kubernetes_namespace" "qwen" {
+  depends_on = [google_container_cluster.qwen_cluster]
+
+  metadata {
+    name = local.name_prefix
+  }
+}
+
+resource "kubernetes_persistent_volume_claim" "model_cache" {
+  depends_on = [kubernetes_namespace.qwen]
+
+  metadata {
+    name      = local.pvc_name
+    namespace = local.name_prefix
+  }
+  spec {
+    access_modes = ["ReadWriteOnce"]
+    resources {
+      requests = {
+        storage = var.model_cache_size # "2000Gi"
+      }
+    }
+    storage_class_name = "premium-rwo"
+  }
+
+  wait_until_bound = false
+}
+resource "kubernetes_service" "vllm" {
+  depends_on = [kubernetes_namespace.qwen]
+
+  metadata {
+    name      = local.service_name
+    namespace = local.name_prefix
+  }
+  spec {
+    selector = {
+      app = local.app_label
+    }
+    port {
+      port        = 8000
+      target_port = 8000
+    }
+    # Change this from LoadBalancer to NodePort
+    type = "NodePort"
+  }
+}
+
+resource "kubernetes_deployment" "vllm" {
+  depends_on = [
+    kubernetes_namespace.qwen,
+    kubernetes_secret.hf_token,
+    kubernetes_persistent_volume_claim.model_cache,
+    null_resource.model_downloader_job_trigger
+  ]
+
+  metadata {
+    name      = local.deployment_name
+    namespace = local.name_prefix
+    labels = {
+      app = local.app_label
+    }
+  }
+  spec {
+    replicas = 0
+    strategy {
+      type = "Recreate"
+    }
+    selector {
+      match_labels = {
+        app = local.app_label
+      }
+    }
+    template {
+      metadata {
+        labels = {
+          app = local.app_label
+        }
+      }
+      spec {
+        node_selector = {
+          "cloud.google.com/gke-accelerator" = "nvidia-h100-80gb"
+        }
+        toleration {
+          key      = "dedicated"
+          operator = "Equal"
+          value    = "h100-spot"
+          effect   = "NoSchedule"
+        }
+        toleration {
+          key      = "dedicated"
+          operator = "Equal"
+          value    = "h100-ondemand"
+          effect   = "NoSchedule"
+        }
+        affinity {
+          node_affinity {
+            preferred_during_scheduling_ignored_during_execution {
+              weight = 100
+              preference {
+                match_expressions {
+                  key      = "cloud.google.com/gke-spot"
+                  operator = "In"
+                  values   = ["true"]
+                }
+              }
+            }
+          }
+        }
+        init_container {
+          name    = "validate-model-cache"
+          image   = "busybox:1.36"
+          command = ["/bin/sh", "-c"]
+          args    = [file("${path.module}/scripts/validate-cache.sh")]
+
+          env {
+            name  = "MODEL_ID"
+            value = var.model_id
+          }
+          env {
+            name  = "ENABLE_SPECULATIVE_DECODING"
+            value = tostring(var.enable_speculative_decoding)
+          }
+          env {
+            name  = "SPECULATIVE_MODEL_ID"
+            value = var.speculative_model_id
+          }
+          volume_mount {
+            name       = "model-cache"
+            mount_path = "/root/.cache/huggingface"
+          }
+        }
+        container {
+          name  = "vllm-container"
+          image = "vllm/vllm-openai:latest"
+          env {
+            name  = "LD_LIBRARY_PATH"
+            value = "/usr/local/nvidia/lib64"
+          }
+          env {
+            name = "HF_TOKEN"
+            value_from {
+              secret_key_ref {
+                name = kubernetes_secret.hf_token.metadata[0].name
+                key  = "token"
+              }
+            }
+          }
+          args = compact([
+            # --- Base Model Arguments ---
+            "--model",
+            var.model_id,
+            "--tensor-parallel-size",
+            tostring(var.tensor_parallel_size),
+            "--gpu-memory-utilization",
+            tostring(var.gpu_memory_utilization),
+            "--max-model-len",
+            tostring(var.max_model_len),
+
+            # --- Performance Tuning from Variables ---
+            "--dtype",
+            var.vllm_dtype,
+            "--max-num-seqs",
+            tostring(var.vllm_max_num_seqs),
+            var.vllm_enable_chunked_prefill ? "--enable-chunked-prefill" : "",
+            var.vllm_enable_expert_parallel ? "--enable-expert-parallel" : "",
+            "--compilation-config",
+            jsonencode({ "level" : var.vllm_compilation_level }),
+
+            # --- Functional & Security Arguments ---
+            var.trust_remote_code ? "--trust-remote-code" : "",
+            "--hf-overrides",
+            var.vllm_hf_overrides,
+
+            # --- Speculative Decoding Arguments ---
+            var.enable_speculative_decoding ? "--speculative_config" : "",
+            var.enable_speculative_decoding ? jsonencode({
+              "model"                      = var.speculative_model_id,
+              "num_speculative_tokens"     = var.num_speculative_tokens,
+              "draft_tensor_parallel_size" = 1
+            }) : ""
+          ])
+          port {
+            container_port = 8000
+          }
+          resources {
+            requests = {
+              cpu    = "8"
+              memory = "128Gi"
+            }
+            limits = {
+              "nvidia.com/gpu" = "8"
+            }
+          }
+          liveness_probe {
+            http_get {
+              path = "/health"
+              port = 8000
+            }
+            initial_delay_seconds = 300
+            period_seconds        = 30
+          }
+          readiness_probe {
+            http_get {
+              path = "/health"
+              port = 8000
+            }
+            initial_delay_seconds = 600
+            period_seconds        = 30
+          }
+          startup_probe {
+            http_get {
+              path = "/health"
+              port = 8000
+            }
+            initial_delay_seconds = 60
+            period_seconds        = 30
+            failure_threshold     = 120
+          }
+          volume_mount {
+            name       = "model-cache"
+            mount_path = "/root/.cache/huggingface"
+          }
+        }
+        volume {
+          name = "model-cache"
+          persistent_volume_claim {
+            claim_name = kubernetes_persistent_volume_claim.model_cache.metadata[0].name
+          }
+        }
+      }
+    }
+  }
+}
+
+resource "kubernetes_secret" "hf_token" {
+  depends_on = [kubernetes_namespace.qwen]
+
+  metadata {
+    name      = local.secret_name
+    namespace = local.name_prefix
+  }
+  data = {
+    token = var.hf_token
+  }
+}
+
+resource "kubernetes_ingress_v1" "vllm_ingress" {
+  depends_on = [kubernetes_service.vllm]
+  metadata {
+    name      = "${local.name_prefix}-ingress"
+    namespace = local.name_prefix
+    annotations = {
+      # This tells GKE to use the premium global external load balancer
+      "kubernetes.io/ingress.class" : "gce"
+    }
+  }
+
+  spec {
+    default_backend {
+      service {
+        name = kubernetes_service.vllm.metadata[0].name
+        port {
+          number = 8000
+        }
+      }
+    }
+  }
+}
