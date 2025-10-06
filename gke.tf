@@ -38,7 +38,9 @@ resource "google_container_node_pool" "h100_spot_pool" {
     machine_type = "a3-highgpu-8g"
     spot         = true
     oauth_scopes = [
-      "https://www.googleapis.com/auth/cloud-platform"
+      "https://www.googleapis.com/auth/logging.write",
+      "https://www.googleapis.com/auth/monitoring",
+      "https://www.googleapis.com/auth/devstorage.read_only"
     ]
     service_account = "default"
     labels = {
@@ -85,7 +87,9 @@ resource "google_container_node_pool" "h100_ondemand_pool" {
   node_config {
     machine_type = "a3-highgpu-8g"
     oauth_scopes = [
-      "https://www.googleapis.com/auth/cloud-platform"
+      "https://www.googleapis.com/auth/logging.write",
+      "https://www.googleapis.com/auth/monitoring",
+      "https://www.googleapis.com/auth/devstorage.read_only"
     ]
     service_account = "default"
     labels = {

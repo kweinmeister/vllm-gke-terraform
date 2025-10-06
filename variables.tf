@@ -106,11 +106,6 @@ variable "vllm_dtype" {
   default     = "bfloat16"
 }
 
-variable "vllm_enable_cuda_graph" {
-  description = "If true, enables CUDA graph optimization for the prefill stage, significantly reducing latency."
-  type        = bool
-  default     = true
-}
 
 variable "vllm_enable_chunked_prefill" {
   description = "If true, enables chunked prefill, which helps manage memory for long prompts and improves batching."
