@@ -25,7 +25,7 @@ validate_model() {
 
     echo "⏳ Waiting for ${MODEL_TYPE} model download to complete..."
     while [ $count -lt $MAX_WAIT ]; do
-        if find "$MODEL_DIR" -type f -name '.success' -print -quit 2>/dev/null | grep -q .; then
+        if [ -f "$MODEL_DIR/.success" ]; then
             echo "✅ ${MODEL_TYPE} model validation successful for $MODEL_ID."
             return 0
         fi

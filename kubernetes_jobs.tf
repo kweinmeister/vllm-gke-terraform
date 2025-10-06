@@ -123,6 +123,11 @@ resource "kubernetes_job" "model_downloader_job" {
       kubernetes_config_map.model_downloader_script,
       null_resource.job_triggers,
     ]
+
+    precondition {
+      condition     = !var.enable_speculative_decoding || var.speculative_model_id != ""
+      error_message = "When speculative decoding is enabled, `speculative_model_id` must be provided and cannot be empty."
+    }
   }
 
   depends_on = [

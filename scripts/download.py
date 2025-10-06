@@ -31,6 +31,8 @@ def download_and_validate(model_id, token, cache_dir):
 
     # Atomic move
     if temp_dir.exists():
+        if final_dir.exists():
+            shutil.rmtree(final_dir)
         temp_dir.rename(final_dir)
         (final_dir / ".success").touch()
         print(f"✅ Successfully downloaded {model_id} to {final_dir}")
