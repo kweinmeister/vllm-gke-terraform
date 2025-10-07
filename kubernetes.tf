@@ -91,6 +91,9 @@ resource "kubernetes_deployment" "vllm" {
   }
   spec {
     replicas = 0
+    strategy {
+      type = "Recreate"
+    }
     selector {
       match_labels = {
         app = local.app_label
@@ -142,6 +145,10 @@ resource "kubernetes_deployment" "vllm" {
             requests = {
               cpu    = local.kubernetes_resources.init_container.requests.cpu
               memory = local.kubernetes_resources.init_container.requests.memory
+            }
+            limits = {
+              cpu    = local.kubernetes_resources.init_container.limits.cpu
+              memory = local.kubernetes_resources.init_container.limits.memory
             }
           }
 
@@ -233,6 +240,9 @@ resource "kubernetes_deployment" "vllm" {
               cpu    = local.kubernetes_resources.main_container_resources_by_machine_type[values(local.gpu_node_pools)[0].machine_type].requests.cpu
               memory = local.kubernetes_resources.main_container_resources_by_machine_type[values(local.gpu_node_pools)[0].machine_type].requests.memory
             }
+            limits = {
+              "nvidia.com/gpu" = local.gpu_config.accelerator_count
+            }
           }
           liveness_probe {
             http_get {
@@ -249,7 +259,7 @@ resource "kubernetes_deployment" "vllm" {
             }
             initial_delay_seconds = 600
             period_seconds        = 30
-            failure_threshold     = 40
+            failure_threshold     = 5
           }
           startup_probe {
             http_get {
