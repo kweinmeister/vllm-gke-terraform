@@ -27,8 +27,7 @@ def download_and_validate(model_id, token, cache_dir):
         token=token,
         cache_dir=cache_dir,
         local_dir=temp_dir,
-        local_dir_use_symlinks=False,  # Avoid symlink issues in containers
-        resume_download=True,
+        local_dir_use_symlinks=False
     )
 
     # Atomic move
