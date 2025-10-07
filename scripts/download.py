@@ -16,6 +16,11 @@ def download_and_validate(model_id, token, cache_dir):
     final_dir = Path(cache_dir) / "hub" / f"models--{model_id.replace('/', '--')}"
     temp_dir = final_dir.with_name(final_dir.name + ".tmp")
 
+    # Skip if already downloaded and validated
+    if final_dir.exists() and final_dir.joinpath(".success").exists():
+        print(f"✅ Model {model_id} already downloaded and validated. Skipping download.")
+        return
+
     # Clean up any stale temp dir
     if temp_dir.exists():
         shutil.rmtree(temp_dir)
@@ -27,6 +32,7 @@ def download_and_validate(model_id, token, cache_dir):
         cache_dir=cache_dir,
         local_dir=temp_dir,
         local_dir_use_symlinks=False,  # Avoid symlink issues in containers
+        resume_download=True,
     )
 
     # Atomic move
