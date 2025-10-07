@@ -62,15 +62,6 @@ locals {
     }
   }
 
-  # Extract common GPU configuration for use in Kubernetes deployment
-  # Assumes all GPU node pools have the same accelerator type and count
-  gpu_config = {
-    accelerator_type  = one([for p in values(local.gpu_node_pools) : p.accelerator_type])
-    accelerator_count = one([for p in values(local.gpu_node_pools) : p.accelerator_count])
-  }
-
-  main_container_requests = local.kubernetes_resources.main_container_resources_by_machine_type[one([for p in values(local.gpu_node_pools) : p.machine_type])].requests
-
   # Resource configurations for Kubernetes deployment
   kubernetes_resources = {
     init_container = {
@@ -99,4 +90,13 @@ locals {
       }
     }
   }
+
+  # Extract common GPU configuration for use in Kubernetes deployment
+  # Assumes all GPU node pools have the same accelerator type and count
+  gpu_config = {
+    accelerator_type  = one([for p in values(local.gpu_node_pools) : p.accelerator_type])
+    accelerator_count = one([for p in values(local.gpu_node_pools) : p.accelerator_count])
+  }
+
+  main_container_requests = local.kubernetes_resources.main_container_resources_by_machine_type[one([for p in values(local.gpu_node_pools) : p.machine_type])].requests
 }
