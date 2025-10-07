@@ -76,6 +76,12 @@ resource "kubernetes_deployment" "vllm" {
     kubernetes_persistent_volume_claim.model_cache,
   ]
 
+  timeouts {
+    create = "20m"
+    update = "20m"
+    delete = "20m"
+  }
+
   metadata {
     name      = local.deployment_name
     namespace = local.name_prefix
@@ -85,9 +91,6 @@ resource "kubernetes_deployment" "vllm" {
   }
   spec {
     replicas = 0
-    strategy {
-      type = "Recreate"
-    }
     selector {
       match_labels = {
         app = local.app_label
@@ -101,7 +104,7 @@ resource "kubernetes_deployment" "vllm" {
       }
       spec {
         node_selector = {
-          "cloud.google.com/gke-accelerator" = "nvidia-h100-80gb"
+          "cloud.google.com/gke-accelerator" = local.gpu_config.accelerator_type
         }
         toleration {
           key      = "dedicated"
@@ -137,12 +140,8 @@ resource "kubernetes_deployment" "vllm" {
 
           resources {
             requests = {
-              cpu    = "100m"
-              memory = "256Mi"
-            }
-            limits = {
-              cpu    = "200m"
-              memory = "512Mi"
+              cpu    = local.kubernetes_resources.init_container.requests.cpu
+              memory = local.kubernetes_resources.init_container.requests.memory
             }
           }
 
@@ -171,7 +170,7 @@ resource "kubernetes_deployment" "vllm" {
         }
         container {
           name  = "vllm-container"
-          image = "vllm/vllm-openai:latest"
+          image = "vllm/vllm-openai:v0.11.0"
           env {
             name  = "LD_LIBRARY_PATH"
             value = "/usr/local/nvidia/lib64"
@@ -231,11 +230,8 @@ resource "kubernetes_deployment" "vllm" {
           }
           resources {
             requests = {
-              cpu    = "8"
-              memory = "128Gi"
-            }
-            limits = {
-              "nvidia.com/gpu" = "8"
+              cpu    = local.kubernetes_resources.main_container_resources_by_machine_type[values(local.gpu_node_pools)[0].machine_type].requests.cpu
+              memory = local.kubernetes_resources.main_container_resources_by_machine_type[values(local.gpu_node_pools)[0].machine_type].requests.memory
             }
           }
           liveness_probe {
@@ -253,6 +249,7 @@ resource "kubernetes_deployment" "vllm" {
             }
             initial_delay_seconds = 600
             period_seconds        = 30
+            failure_threshold     = 40
           }
           startup_probe {
             http_get {

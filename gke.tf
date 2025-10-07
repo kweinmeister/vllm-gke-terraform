@@ -18,8 +18,10 @@ resource "google_container_node_pool" "default_pool" {
   }
 }
 
-resource "google_container_node_pool" "h100_spot_pool" {
-  name     = "${local.name_prefix}-h100-spot-pool"
+resource "google_container_node_pool" "gpu_pools" {
+  for_each = local.gpu_node_pools
+
+  name     = each.key
   cluster  = google_container_cluster.qwen_cluster.name
   location = var.zone
   project  = var.project_id
@@ -35,84 +37,42 @@ resource "google_container_node_pool" "h100_spot_pool" {
   }
 
   node_config {
-    machine_type = "a3-highgpu-8g"
-    spot         = true
+    machine_type = each.value.machine_type
+    spot         = each.value.is_spot
+
     oauth_scopes = [
       "https://www.googleapis.com/auth/logging.write",
       "https://www.googleapis.com/auth/monitoring",
       "https://www.googleapis.com/auth/devstorage.read_only"
     ]
+
     service_account = "default"
+
     labels = {
-      pool-type                   = "h100-spot"
-      model                       = var.name_prefix
-      "cloud.google.com/gke-spot" = "true"
+      "cloud.google.com/gke-accelerator" = each.value.accelerator_type,
+      "pool-type"                        = each.key
+      "model"                            = local.name_prefix
+      "cloud.google.com/gke-spot"        = tostring(each.value.is_spot)
     }
+
     taint {
       key    = "dedicated"
-      value  = "h100-spot"
+      value  = each.value.is_spot ? "h100-spot" : "h100-ondemand"
       effect = "NO_SCHEDULE"
     }
+
     guest_accelerator {
-      type  = "nvidia-h100-80gb"
-      count = 8
+      type  = each.value.accelerator_type
+      count = each.value.accelerator_count
       gpu_driver_installation_config {
         gpu_driver_version = "LATEST"
       }
     }
+
     ephemeral_storage_local_ssd_config {
-      local_ssd_count = 16
+      local_ssd_count = local.machine_type_specs[each.value.machine_type].local_ssd_count
     }
-    shielded_instance_config {
-      enable_secure_boot = true
-    }
-  }
-}
 
-resource "google_container_node_pool" "h100_ondemand_pool" {
-  name     = "${local.name_prefix}-h100-ondemand-pool"
-  cluster  = google_container_cluster.qwen_cluster.name
-  location = var.zone
-  project  = var.project_id
-
-  autoscaling {
-    min_node_count = var.min_gpu_nodes
-    max_node_count = var.max_gpu_nodes
-  }
-
-  management {
-    auto_repair  = true
-    auto_upgrade = true
-  }
-
-  node_config {
-    machine_type = "a3-highgpu-8g"
-    oauth_scopes = [
-      "https://www.googleapis.com/auth/logging.write",
-      "https://www.googleapis.com/auth/monitoring",
-      "https://www.googleapis.com/auth/devstorage.read_only"
-    ]
-    service_account = "default"
-    labels = {
-      pool-type                   = "h100-ondemand"
-      model                       = var.name_prefix
-      "cloud.google.com/gke-spot" = "false"
-    }
-    taint {
-      key    = "dedicated"
-      value  = "h100-ondemand"
-      effect = "NO_SCHEDULE"
-    }
-    guest_accelerator {
-      type  = "nvidia-h100-80gb"
-      count = 8
-      gpu_driver_installation_config {
-        gpu_driver_version = "LATEST"
-      }
-    }
-    ephemeral_storage_local_ssd_config {
-      local_ssd_count = 16
-    }
     shielded_instance_config {
       enable_secure_boot = true
     }

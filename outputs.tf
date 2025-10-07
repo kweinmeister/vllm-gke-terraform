@@ -3,11 +3,11 @@ output "cluster_endpoint" {
 }
 
 output "node_pool_names" {
-  value = [
-    google_container_node_pool.default_pool.name,
-    google_container_node_pool.h100_spot_pool.name,
-    google_container_node_pool.h100_ondemand_pool.name
-  ]
+  description = "Names of all node pools including GPU pools"
+  value = concat(
+    [google_container_node_pool.default_pool.name],
+    keys(local.gpu_node_pools)
+  )
 }
 
 output "pvc_name" {

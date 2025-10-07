@@ -1,19 +1,14 @@
 locals {
-  # This local simply makes the variable easier to reference if needed, but is optional.
   name_prefix = var.name_prefix
 
-  # --- Resource Names ---
-  # Define all resource names here, based on the single name_prefix variable.
   cluster_name = "${var.name_prefix}-cluster"
   pvc_name     = "${var.name_prefix}-model-cache-pvc"
   secret_name  = "${var.name_prefix}-hf-secret"
   job_name     = "${local.name_prefix}-model-downloader"
 
-  # For Kubernetes, it's good practice to have a consistent app label.
-  # We will derive the deployment and service names from this.
   app_label       = "vllm-${var.name_prefix}"
-  deployment_name = local.app_label # The deployment name and app label are often the same
-  service_name    = local.app_label # The service name can also be the same for simplicity
+  deployment_name = local.app_label
+  service_name    = local.app_label
 
   vllm_env_vars = concat(
     [
@@ -36,4 +31,68 @@ locals {
       value = "1"
     }] : []
   )
+
+  machine_type_specs = {
+    "a3-highgpu-8g" = {
+      local_ssd_count = 16
+      cpu             = "208"
+      memory          = "1872Gi"
+    },
+    "e2-standard-4" = {
+      local_ssd_count = 0
+      cpu             = "4"
+      memory          = "16Gi"
+    }
+  }
+
+  gpu_node_pools = {
+    "${local.name_prefix}-h100-spot-pool" = {
+      is_spot           = true
+      machine_type      = "a3-highgpu-8g"
+      accelerator_type  = "nvidia-h100-80gb"
+      accelerator_count = 8
+    }
+    "${local.name_prefix}-h100-ondemand-pool" = {
+      is_spot           = false
+      machine_type      = "a3-highgpu-8g"
+      accelerator_type  = "nvidia-h100-80gb"
+      accelerator_count = 8
+    }
+  }
+
+  # Extract common GPU configuration for use in Kubernetes deployment
+  # Assumes all GPU node pools have the same accelerator type and count
+  gpu_config = {
+    accelerator_type  = values(local.gpu_node_pools)[0].accelerator_type
+    accelerator_count = values(local.gpu_node_pools)[0].accelerator_count
+  }
+
+  # Resource configurations for Kubernetes deployment
+  kubernetes_resources = {
+    init_container = {
+      requests = {
+        cpu    = "100m"
+        memory = "256Mi"
+      }
+      limits = {
+        cpu    = "200m"
+        memory = "512Mi"
+      }
+    }
+    # Main container resources are associated with machine types
+    main_container_resources_by_machine_type = {
+      "a3-highgpu-8g" = {
+        requests = {
+          cpu    = "8"
+          memory = "128Gi"
+        }
+      }
+      "e2-standard-4" = {
+        requests = {
+          cpu    = "2"
+          memory = "4Gi"
+        }
+      }
+    }
+  }
 }
