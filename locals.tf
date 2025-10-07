@@ -47,12 +47,14 @@ locals {
 
   gpu_node_pools = {
     "${local.name_prefix}-h100-spot-pool" = {
+      pool_type         = "h100-spot"
       is_spot           = true
       machine_type      = "a3-highgpu-8g"
       accelerator_type  = "nvidia-h100-80gb"
       accelerator_count = 8
     }
     "${local.name_prefix}-h100-ondemand-pool" = {
+      pool_type         = "h100-ondemand"
       is_spot           = false
       machine_type      = "a3-highgpu-8g"
       accelerator_type  = "nvidia-h100-80gb"
@@ -63,11 +65,11 @@ locals {
   # Extract common GPU configuration for use in Kubernetes deployment
   # Assumes all GPU node pools have the same accelerator type and count
   gpu_config = {
-    accelerator_type  = values(local.gpu_node_pools)[0].accelerator_type
-    accelerator_count = values(local.gpu_node_pools)[0].accelerator_count
+    accelerator_type  = one([for p in values(local.gpu_node_pools) : p.accelerator_type])
+    accelerator_count = one([for p in values(local.gpu_node_pools) : p.accelerator_count])
   }
 
-  main_container_requests = local.kubernetes_resources.main_container_resources_by_machine_type[values(local.gpu_node_pools)[0].machine_type].requests
+  main_container_requests = local.kubernetes_resources.main_container_resources_by_machine_type[one([for p in values(local.gpu_node_pools) : p.machine_type])].requests
 
   # Resource configurations for Kubernetes deployment
   kubernetes_resources = {
