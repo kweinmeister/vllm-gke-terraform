@@ -112,13 +112,13 @@ resource "kubernetes_deployment" "vllm" {
         toleration {
           key      = "dedicated"
           operator = "Equal"
-          value    = "h100-spot"
+          value    = "${local.gpu_config.accelerator_type}-spot"
           effect   = "NoSchedule"
         }
         toleration {
           key      = "dedicated"
           operator = "Equal"
-          value    = "h100-ondemand"
+          value    = "${local.gpu_config.accelerator_type}-ondemand"
           effect   = "NoSchedule"
         }
         affinity {
@@ -237,8 +237,8 @@ resource "kubernetes_deployment" "vllm" {
           }
           resources {
             requests = {
-              cpu    = try(local.kubernetes_resources.main_container_resources_by_machine_type[values(local.gpu_node_pools)[0].machine_type].requests.cpu, "0")
-              memory = try(local.kubernetes_resources.main_container_resources_by_machine_type[values(local.gpu_node_pools)[0].machine_type].requests.memory, "0Gi")
+              cpu    = local.kubernetes_resources.main_container_resources_by_machine_type[values(local.gpu_node_pools)[0].machine_type].requests.cpu
+              memory = local.kubernetes_resources.main_container_resources_by_machine_type[values(local.gpu_node_pools)[0].machine_type].requests.memory
             }
             limits = {
               "nvidia.com/gpu" = local.gpu_config.accelerator_count
