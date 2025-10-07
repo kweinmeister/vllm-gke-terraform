@@ -21,10 +21,6 @@ def download_and_validate(model_id, token, cache_dir):
         print(f"✅ Model {model_id} already downloaded and validated. Skipping download.")
         return
 
-    # Clean up any stale temp dir
-    if temp_dir.exists():
-        shutil.rmtree(temp_dir)
-
     # Download
     snapshot_download(
         repo_id=model_id,
