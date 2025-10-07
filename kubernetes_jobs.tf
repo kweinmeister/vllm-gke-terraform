@@ -89,6 +89,10 @@ resource "kubernetes_job" "model_downloader_job" {
             value = var.speculative_model_id
           }
           env {
+            name  = "ENABLE_SPECULATIVE_DECODING"
+            value = tostring(var.enable_speculative_decoding)
+          }
+          env {
             name  = "PYTHONUNBUFFERED"
             value = "1"
           }
