@@ -92,7 +92,7 @@ locals {
         machine_type         = "g2-standard-48"
         accelerator_type     = "nvidia-l4"
         accelerator_count    = 4
-        tensor_parallel_size = 4 
+        tensor_parallel_size = 4
       }
     }
   }
