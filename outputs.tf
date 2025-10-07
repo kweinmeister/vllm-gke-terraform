@@ -72,3 +72,8 @@ output "job_name" {
   description = "The name of the model downloader Kubernetes job."
   value       = local.job_name
 }
+
+output "tensor_parallel_size" {
+  description = "The actual tensor parallel size used (inferred from the GPU node pool)"
+  value       = local.gpu_config.accelerator_count
+}

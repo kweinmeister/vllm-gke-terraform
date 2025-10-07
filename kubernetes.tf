@@ -178,24 +178,24 @@ resource "kubernetes_deployment" "vllm" {
         container {
           name  = "vllm-container"
           image = "vllm/vllm-openai:v0.11.0"
-          env {
-            name  = "LD_LIBRARY_PATH"
-            value = "/usr/local/nvidia/lib64"
-          }
-          env {
-            name = "HF_TOKEN"
-            value_from {
-              secret_key_ref {
-                name = kubernetes_secret.hf_token.metadata[0].name
-                key  = "token"
-              }
+          dynamic "env" {
+            for_each = local.vllm_env_vars_simple
+            content {
+              name  = env.value.name
+              value = env.value.value
             }
           }
           dynamic "env" {
-            for_each = var.vllm_use_flashinfer_moe ? [1] : []
+            for_each = local.vllm_env_vars_secret
             content {
-              name  = "VLLM_USE_FLASHINFER_MOE_FP16"
-              value = "1"
+              name = env.value.name
+
+              value_from {
+                secret_key_ref {
+                  name = env.value.value_from.secret_key_ref.name
+                  key  = env.value.value_from.secret_key_ref.key
+                }
+              }
             }
           }
           args = compact([
@@ -203,7 +203,7 @@ resource "kubernetes_deployment" "vllm" {
             "--model",
             var.model_id,
             "--tensor-parallel-size",
-            tostring(var.tensor_parallel_size),
+            tostring(local.gpu_config.accelerator_count),
             "--gpu-memory-utilization",
             tostring(var.gpu_memory_utilization),
             "--max-model-len",

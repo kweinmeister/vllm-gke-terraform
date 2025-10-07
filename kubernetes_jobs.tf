@@ -21,17 +21,6 @@ resource "null_resource" "job_triggers" {
   }
 }
 
-resource "time_sleep" "wait_for_job_deletion" {
-  create_duration = "30s"
-
-  triggers = {
-    # This sleep is triggered whenever the job would be replaced.
-    model_config_hash = null_resource.job_triggers.id
-    script_id         = kubernetes_config_map.model_downloader_script.id
-  }
-}
-
-
 # 2. Kubernetes Job to execute the download script.
 resource "kubernetes_job" "model_downloader_job" {
   wait_for_completion = false
@@ -67,34 +56,28 @@ resource "kubernetes_job" "model_downloader_job" {
           image             = "python:3.13-slim"
           image_pull_policy = "IfNotPresent"
           command           = ["/bin/sh", "-c", "pip install -q huggingface-hub && python /scripts/download.py"]
-          env {
-            name  = "HF_HOME"
-            value = "/root/.cache/huggingface"
-          }
-          env {
-            name = "HF_TOKEN"
-            value_from {
-              secret_key_ref {
-                name = kubernetes_secret.hf_token.metadata[0].name
-                key  = "token"
-              }
+          # ✅ Simple env vars
+          dynamic "env" {
+            for_each = local.vllm_env_vars_simple
+            content {
+              name  = env.value.name
+              value = env.value.value
             }
           }
-          env {
-            name  = "MODEL_ID"
-            value = var.model_id
-          }
-          env {
-            name  = "SPECULATIVE_MODEL_ID"
-            value = var.speculative_model_id
-          }
-          env {
-            name  = "ENABLE_SPECULATIVE_DECODING"
-            value = tostring(var.enable_speculative_decoding)
-          }
-          env {
-            name  = "PYTHONUNBUFFERED"
-            value = "1"
+
+          # ✅ Secret env vars
+          dynamic "env" {
+            for_each = local.vllm_env_vars_secret
+            content {
+              name = env.value.name
+
+              value_from {
+                secret_key_ref {
+                  name = env.value.value_from.secret_key_ref.name
+                  key  = env.value.value_from.secret_key_ref.key
+                }
+              }
+            }
           }
           volume_mount {
             name       = "model-cache"
@@ -139,6 +122,5 @@ resource "kubernetes_job" "model_downloader_job" {
     kubernetes_persistent_volume_claim.model_cache,
     kubernetes_secret.hf_token,
     kubernetes_config_map.model_downloader_script,
-    time_sleep.wait_for_job_deletion
   ]
 }

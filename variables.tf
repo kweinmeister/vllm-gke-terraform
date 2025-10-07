@@ -88,16 +88,21 @@ variable "num_speculative_tokens" {
   default     = 5
 }
 
-variable "tensor_parallel_size" {
-  description = "Tensor parallel size for model sharding"
-  type        = number
-  default     = 8
-}
 
 variable "gpu_memory_utilization" {
   description = "GPU memory utilization ratio"
   type        = number
   default     = 0.9
+}
+
+variable "gpu_type" {
+  description = "The type of GPU to use for the node pools. Supported values: 'h100', 'l4'."
+  type        = string
+  default     = "l4"
+  validation {
+    condition     = contains(["h100", "l4"], var.gpu_type)
+    error_message = "Supported GPU types are 'h100' and 'l4'."
+  }
 }
 
 # -----------------------------------------------------------------------------
