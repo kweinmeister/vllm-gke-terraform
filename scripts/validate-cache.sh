@@ -1,71 +1,102 @@
 #!/bin/sh
 set -eu
-export HF_HUB_ENABLE_HF_TRANSFER=1 # 🔥 Enables 3–5x faster downloads
+export HF_HUB_ENABLE_HF_TRANSFER=1
 
-# Redirect stdout to stderr (duplicating output) using a portable approach
-# We'll use a file descriptor redirection that works in POSIX sh
-exec 3>&1 # Save original stdout
-exec 1>&2 # Redirect stdout to stderr
+# Redirect stdout to stderr
+exec 3>&1
+exec 1>&2
 
-# Function to validate a model
-validate_model() {
-    MODEL_DIR="$1"
-    MODEL_ID="$2"
-    MODEL_TYPE="$3" # "base" or "speculative"
+# --- CONFIG ---
+MAX_WAIT=7200   # 2 hours total for BOTH models
+WAIT_INTERVAL=30
+DEBUG_LOGS="${DEBUG_LOGS:-false}"
 
-    # Validate model directory exists
-    if [ ! -d "$MODEL_DIR" ]; then
-        echo "❌ ERROR: ${MODEL_TYPE} model directory $MODEL_DIR does not exist."
-        exit 1
-    fi
+# --- MODEL PATHS ---
+BASE_MODEL_ID="${MODEL_ID}"
+SPEC_MODEL_ID="${SPECULATIVE_MODEL_ID}"
+ENABLE_SPEC="${ENABLE_SPECULATIVE_DECODING:-false}"
 
-    MAX_WAIT=7200 # 2 hours
-    WAIT_INTERVAL=30
+BASE_MODEL_DIR="/root/.cache/huggingface/hub/models--$(echo "$BASE_MODEL_ID" | sed 's/\//--/g')"
+SPEC_MODEL_DIR="/root/.cache/huggingface/hub/models--$(echo "$SPEC_MODEL_ID" | sed 's/\//--/g')"
+
+# --- FUNCTION: Wait for a model dir to appear ---
+wait_for_model_dir() {
+    dir="$1"
+    label="$2"
     count=0
 
-    echo "⏳ Waiting for ${MODEL_TYPE} model download to complete..."
     while [ $count -lt $MAX_WAIT ]; do
-        if [ -f "$MODEL_DIR/.success" ]; then
-            echo "✅ ${MODEL_TYPE} model validation successful for $MODEL_ID."
+        if [ -d "$dir" ]; then
+            echo "✅ $label model directory found: $dir"
             return 0
         fi
-        # Only show waiting messages if DEBUG_LOGS is set to true
-        if [ "${DEBUG_LOGS:-false}" = "true" ]; then
-            echo "Still waiting for ${MODEL_TYPE} .success file... (${count}s / $MAX_WAIT)"
+        if [ "$DEBUG_LOGS" = "true" ]; then
+            echo "⏳ Still waiting for $label model directory... (${count}s / $MAX_WAIT)"
         fi
         sleep $WAIT_INTERVAL
         count=$((count + WAIT_INTERVAL))
     done
 
-    echo "❌ ERROR: ${MODEL_TYPE} model download did not complete within $MAX_WAIT seconds."
+    echo "❌ ERROR: $label model directory $dir was not created within $MAX_WAIT seconds."
     exit 1
 }
 
-# Validate required environment variables are set
-if [ -z "${MODEL_ID:-}" ]; then
-    echo "❌ ERROR: MODEL_ID environment variable is not set"
-    exit 1
-fi
+# --- VALIDATION LOGIC ---
+echo "⏳ Waiting for model directories to be created..."
 
-if [ -z "${ENABLE_SPECULATIVE_DECODING:-}" ]; then
-    echo "❌ ERROR: ENABLE_SPECULATIVE_DECODING environment variable is not set"
-    exit 1
-fi
+# Check base model
+wait_for_model_dir "$BASE_MODEL_DIR" "base"
 
-# Validate base model
-MODEL_DIR="/root/.cache/huggingface/hub/models--$(echo "$MODEL_ID" | sed 's/\//--/g')"
-validate_model "$MODEL_DIR" "$MODEL_ID" "base"
-
-# Validate speculative model if enabled
-if [ "$ENABLE_SPECULATIVE_DECODING" = "true" ]; then
-    if [ -z "${SPECULATIVE_MODEL_ID:-}" ]; then
-        echo "❌ ERROR: SPECULATIVE_MODEL_ID environment variable is not set but speculative decoding is enabled"
+# If speculative enabled, check speculative model
+if [ "$ENABLE_SPEC" = "true" ]; then
+    if [ -z "$SPEC_MODEL_ID" ]; then
+        echo "❌ ERROR: ENABLE_SPECULATIVE_DECODING=true but SPECULATIVE_MODEL_ID is empty"
         exit 1
     fi
-    SPEC_MODEL_DIR="/root/.cache/huggingface/hub/models--$(echo "$SPECULATIVE_MODEL_ID" | sed 's/\//--/g')"
-    validate_model "$SPEC_MODEL_DIR" "$SPECULATIVE_MODEL_ID" "speculative"
-else
-    echo "ℹ️  Speculative decoding not enabled, skipping its validation."
+    wait_for_model_dir "$SPEC_MODEL_DIR" "speculative"
+fi
+
+# Now wait for both .success files (still sequential, but fast)
+echo "⏳ Waiting for .success files..."
+
+# Base .success
+count=0
+while [ $count -lt $MAX_WAIT ]; do
+    if [ -f "$BASE_MODEL_DIR/.success" ]; then
+        echo "✅ base model .success file found."
+        break
+    fi
+    if [ "$DEBUG_LOGS" = "true" ]; then
+        echo "⏳ Still waiting for base .success file... (${count}s / $MAX_WAIT)"
+    fi
+    sleep $WAIT_INTERVAL
+    count=$((count + WAIT_INTERVAL))
+done
+
+if [ $count -ge $MAX_WAIT ]; then
+    echo "❌ ERROR: base model .success file not found within $MAX_WAIT seconds."
+    exit 1
+fi
+
+# Speculative .success (if enabled)
+if [ "$ENABLE_SPEC" = "true" ]; then
+    count=0
+    while [ $count -lt $MAX_WAIT ]; do
+        if [ -f "$SPEC_MODEL_DIR/.success" ]; then
+            echo "✅ speculative model .success file found."
+            break
+        fi
+        if [ "$DEBUG_LOGS" = "true" ]; then
+            echo "⏳ Still waiting for speculative .success file... (${count}s / $MAX_WAIT)"
+        fi
+        sleep $WAIT_INTERVAL
+        count=$((count + WAIT_INTERVAL))
+    done
+
+    if [ $count -ge $MAX_WAIT ]; then
+        echo "❌ ERROR: speculative model .success file not found within $MAX_WAIT seconds."
+        exit 1
+    fi
 fi
 
 echo "--- Cache Validation Complete. Starting main container. ---"
