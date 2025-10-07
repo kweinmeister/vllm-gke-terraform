@@ -49,10 +49,8 @@ resource "google_container_node_pool" "gpu_pools" {
     service_account = "default"
 
     labels = {
-      "cloud.google.com/gke-accelerator" = each.value.accelerator_type,
-      "pool-type"                        = each.value.pool_type
-      "model"                            = local.name_prefix
-      "cloud.google.com/gke-spot"        = tostring(each.value.is_spot)
+      "pool-type" = each.value.pool_type
+      "model"     = local.name_prefix
     }
 
     taint {

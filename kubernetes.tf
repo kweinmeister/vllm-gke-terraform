@@ -249,9 +249,8 @@ resource "kubernetes_deployment" "vllm" {
               path = "/health"
               port = 8000
             }
-            initial_delay_seconds = 600
+            initial_delay_seconds = 300
             period_seconds        = 30
-            failure_threshold     = 6
           }
           readiness_probe {
             http_get {
