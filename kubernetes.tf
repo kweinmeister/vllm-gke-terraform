@@ -76,6 +76,12 @@ resource "kubernetes_deployment" "vllm" {
     kubernetes_persistent_volume_claim.model_cache,
   ]
 
+  timeouts {
+    create = "20m"
+    update = "20m"
+    delete = "20m"
+  }
+
   metadata {
     name      = local.deployment_name
     namespace = local.name_prefix
@@ -101,18 +107,18 @@ resource "kubernetes_deployment" "vllm" {
       }
       spec {
         node_selector = {
-          "cloud.google.com/gke-accelerator" = "nvidia-h100-80gb"
+          "cloud.google.com/gke-accelerator" = local.gpu_config.accelerator_type
         }
         toleration {
           key      = "dedicated"
           operator = "Equal"
-          value    = "h100-spot"
+          value    = "${local.gpu_config.accelerator_type}-spot"
           effect   = "NoSchedule"
         }
         toleration {
           key      = "dedicated"
           operator = "Equal"
-          value    = "h100-ondemand"
+          value    = "${local.gpu_config.accelerator_type}-ondemand"
           effect   = "NoSchedule"
         }
         affinity {
@@ -137,12 +143,12 @@ resource "kubernetes_deployment" "vllm" {
 
           resources {
             requests = {
-              cpu    = "100m"
-              memory = "256Mi"
+              cpu    = local.kubernetes_resources.init_container.requests.cpu
+              memory = local.kubernetes_resources.init_container.requests.memory
             }
             limits = {
-              cpu    = "200m"
-              memory = "512Mi"
+              cpu    = local.kubernetes_resources.init_container.limits.cpu
+              memory = local.kubernetes_resources.init_container.limits.memory
             }
           }
 
@@ -171,7 +177,7 @@ resource "kubernetes_deployment" "vllm" {
         }
         container {
           name  = "vllm-container"
-          image = "vllm/vllm-openai:latest"
+          image = "vllm/vllm-openai:v0.11.0"
           env {
             name  = "LD_LIBRARY_PATH"
             value = "/usr/local/nvidia/lib64"
@@ -231,11 +237,11 @@ resource "kubernetes_deployment" "vllm" {
           }
           resources {
             requests = {
-              cpu    = "8"
-              memory = "128Gi"
+              cpu    = local.main_container_requests.cpu
+              memory = local.main_container_requests.memory
             }
             limits = {
-              "nvidia.com/gpu" = "8"
+              "nvidia.com/gpu" = local.gpu_config.accelerator_count
             }
           }
           liveness_probe {
@@ -253,6 +259,7 @@ resource "kubernetes_deployment" "vllm" {
             }
             initial_delay_seconds = 600
             period_seconds        = 30
+            failure_threshold     = 5
           }
           startup_probe {
             http_get {

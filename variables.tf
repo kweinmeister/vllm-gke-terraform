@@ -75,7 +75,7 @@ variable "enable_speculative_decoding" {
 variable "speculative_model_id" {
   description = "The Hugging Face model ID for the speculative draft model (e.g., 'nvidia/Qwen3-235B-A22B-Eagle3')."
   type        = string
-  default     = "nvidia/Qwen3-235B-A22B-Eagle3"
+  default     = "lmsys/Qwen3-235B-A22B-EAGLE3"
   validation {
     condition     = !var.enable_speculative_decoding || (var.enable_speculative_decoding && length(var.speculative_model_id) > 0)
     error_message = "When enable_speculative_decoding is true, speculative_model_id must not be empty."
