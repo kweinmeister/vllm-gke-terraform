@@ -74,7 +74,6 @@ resource "kubernetes_deployment" "vllm" {
     kubernetes_namespace.qwen,
     kubernetes_secret.hf_token,
     kubernetes_persistent_volume_claim.model_cache,
-    kubernetes_job.model_downloader_job
   ]
 
   metadata {

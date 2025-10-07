@@ -44,8 +44,9 @@ resource "google_container_node_pool" "h100_spot_pool" {
     ]
     service_account = "default"
     labels = {
-      pool-type = "h100-spot"
-      model     = var.name_prefix
+      pool-type                   = "h100-spot"
+      model                       = var.name_prefix
+      "cloud.google.com/gke-spot" = "true"
     }
     taint {
       key    = "dedicated"
@@ -90,8 +91,9 @@ resource "google_container_node_pool" "h100_ondemand_pool" {
     ]
     service_account = "default"
     labels = {
-      pool-type = "h100-ondemand"
-      model     = var.name_prefix
+      pool-type                   = "h100-ondemand"
+      model                       = var.name_prefix
+      "cloud.google.com/gke-spot" = "false"
     }
     taint {
       key    = "dedicated"
