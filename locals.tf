@@ -67,6 +67,8 @@ locals {
     accelerator_count = values(local.gpu_node_pools)[0].accelerator_count
   }
 
+  main_container_requests = local.kubernetes_resources.main_container_resources_by_machine_type[values(local.gpu_node_pools)[0].machine_type].requests
+
   # Resource configurations for Kubernetes deployment
   kubernetes_resources = {
     init_container = {

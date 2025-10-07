@@ -237,8 +237,8 @@ resource "kubernetes_deployment" "vllm" {
           }
           resources {
             requests = {
-              cpu    = local.kubernetes_resources.main_container_resources_by_machine_type[values(local.gpu_node_pools)[0].machine_type].requests.cpu
-              memory = local.kubernetes_resources.main_container_resources_by_machine_type[values(local.gpu_node_pools)[0].machine_type].requests.memory
+              cpu    = local.main_container_requests.cpu
+              memory = local.main_container_requests.memory
             }
             limits = {
               "nvidia.com/gpu" = local.gpu_config.accelerator_count
