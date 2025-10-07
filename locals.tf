@@ -63,8 +63,8 @@ locals {
   # Extract common GPU configuration for use in Kubernetes deployment
   # Assumes all GPU node pools have the same accelerator type and count
   gpu_config = {
-    accelerator_type  = values(local.gpu_node_pools)[0].accelerator_type
-    accelerator_count = values(local.gpu_node_pools)[0].accelerator_count
+    accelerator_type  = try(values(local.gpu_node_pools)[0].accelerator_type, null)
+    accelerator_count = try(values(local.gpu_node_pools)[0].accelerator_count, null)
   }
 
   # Resource configurations for Kubernetes deployment

@@ -57,7 +57,7 @@ resource "google_container_node_pool" "gpu_pools" {
 
     taint {
       key    = "dedicated"
-      value  = each.value.is_spot ? "h100-spot" : "h100-ondemand"
+      value  = each.value.is_spot ? "${each.value.accelerator_type}-spot" : "${each.value.accelerator_type}-ondemand"
       effect = "NO_SCHEDULE"
     }
 
