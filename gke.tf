@@ -1,4 +1,4 @@
-resource "google_container_cluster" "qwen_cluster" {
+resource "google_container_cluster" "primary" {
   name     = local.cluster_name
   location = var.zone
   project  = var.project_id
@@ -9,7 +9,7 @@ resource "google_container_cluster" "qwen_cluster" {
 
 resource "google_container_node_pool" "default_pool" {
   name       = "${local.name_prefix}-default-pool"
-  cluster    = google_container_cluster.qwen_cluster.name
+  cluster    = google_container_cluster.primary.name
   location   = var.zone
   node_count = 1
 
@@ -22,7 +22,7 @@ resource "google_container_node_pool" "gpu_pools" {
   for_each = local.gpu_node_pools
 
   name     = each.key
-  cluster  = google_container_cluster.qwen_cluster.name
+  cluster  = google_container_cluster.primary.name
   location = var.zone
   project  = var.project_id
 
