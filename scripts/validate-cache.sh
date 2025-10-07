@@ -7,7 +7,7 @@ exec 3>&1
 exec 1>&2
 
 # --- CONFIG ---
-MAX_WAIT=7200   # 2 hours total for BOTH models
+MAX_WAIT=7200   # 2 hours total
 WAIT_INTERVAL=30
 DEBUG_LOGS="${DEBUG_LOGS:-false}"
 
