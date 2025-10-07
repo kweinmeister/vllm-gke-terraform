@@ -60,6 +60,9 @@ resource "google_container_node_pool" "h100_spot_pool" {
         gpu_driver_version = "LATEST"
       }
     }
+    ephemeral_storage_local_ssd_config {
+      local_ssd_count = 16
+    }
     shielded_instance_config {
       enable_secure_boot = true
     }
@@ -106,6 +109,9 @@ resource "google_container_node_pool" "h100_ondemand_pool" {
       gpu_driver_installation_config {
         gpu_driver_version = "LATEST"
       }
+    }
+    ephemeral_storage_local_ssd_config {
+      local_ssd_count = 16
     }
     shielded_instance_config {
       enable_secure_boot = true
