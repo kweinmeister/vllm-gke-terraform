@@ -98,7 +98,7 @@ variable "gpu_memory_utilization" {
 variable "gpu_type" {
   description = "The type of GPU to use for the node pools. Supported values: 'h100', 'l4'."
   type        = string
-  default     = "h100"
+  default     = "l4"
   validation {
     condition     = contains(["h100", "l4"], var.gpu_type)
     error_message = "Supported GPU types are 'h100' and 'l4'."
