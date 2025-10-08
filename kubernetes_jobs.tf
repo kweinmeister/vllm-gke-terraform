@@ -135,5 +135,6 @@ resource "kubernetes_job" "model_downloader_job" {
     kubernetes_persistent_volume_claim.model_cache,
     kubernetes_secret.hf_token,
     kubernetes_config_map.model_downloader_script,
+    time_sleep.wait_for_job_deletion
   ]
 }
