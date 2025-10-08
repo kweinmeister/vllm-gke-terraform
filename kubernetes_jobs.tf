@@ -23,6 +23,17 @@ resource "null_resource" "job_triggers" {
   }
 }
 
+# A time_sleep resource to prevent race conditions when replacing the job
+resource "time_sleep" "wait_for_job_deletion" {
+  create_duration = "30s"
+
+  triggers = {
+    # This sleep is triggered whenever the job would be replaced.
+    model_config_hash = null_resource.job_triggers.id
+    script_id         = kubernetes_config_map.model_downloader_script.id
+  }
+}
+
 # 2. Kubernetes Job to execute the download script.
 resource "kubernetes_job" "model_downloader_job" {
   wait_for_completion = false

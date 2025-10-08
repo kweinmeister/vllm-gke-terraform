@@ -88,7 +88,7 @@ resource "kubernetes_deployment" "vllm" {
     }
   }
   spec {
-    replicas = 0
+    replicas = 1
     strategy {
       type = "Recreate"
     }
@@ -107,16 +107,11 @@ resource "kubernetes_deployment" "vllm" {
         node_selector = {
           "cloud.google.com/gke-accelerator" = local.gpu_config.accelerator_type
         }
+        
+        # Add this toleration for the default GKE GPU taint
         toleration {
-          key      = "dedicated"
-          operator = "Equal"
-          value    = "${local.gpu_config.accelerator_type}-spot"
-          effect   = "NoSchedule"
-        }
-        toleration {
-          key      = "dedicated"
-          operator = "Equal"
-          value    = "${local.gpu_config.accelerator_type}-ondemand"
+          key      = "nvidia.com/gpu"
+          operator = "Exists"
           effect   = "NoSchedule"
         }
         affinity {

@@ -20,6 +20,18 @@ locals {
       name  = "MODEL_ID"
       value = var.model_id
     },
+    {
+      name  = "SPECULATIVE_MODEL_ID"
+      value = var.speculative_model_id
+    },
+    {
+      name  = "ENABLE_SPECULATIVE_DECODING"
+      value = tostring(var.enable_speculative_decoding)
+    },
+    {
+      name  = "PYTHONUNBUFFERED"
+      value = "1"
+    },
     var.vllm_use_flashinfer_moe ? {
       name  = "VLLM_USE_FLASHINFER_MOE_FP16"
       value = "1"

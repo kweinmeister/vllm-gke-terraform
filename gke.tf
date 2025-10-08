@@ -53,12 +53,6 @@ resource "google_container_node_pool" "gpu_pools" {
       "model"     = local.name_prefix
     }
 
-    taint {
-      key    = "dedicated"
-      value  = each.value.is_spot ? "${each.value.accelerator_type}-spot" : "${each.value.accelerator_type}-ondemand"
-      effect = "NO_SCHEDULE"
-    }
-
     guest_accelerator {
       type  = each.value.accelerator_type
       count = each.value.accelerator_count
