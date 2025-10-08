@@ -75,7 +75,7 @@ variable "enable_speculative_decoding" {
 variable "speculative_model_id" {
   description = "The Hugging Face model ID for the speculative draft model (e.g., 'nvidia/Qwen3-235B-A22B-Eagle3')."
   type        = string
-  default     = "AngelSlim/Qwen3-32B_eagle3"
+  default     = "Zhihu-ai/Zhi-Create-Qwen3-32B-Eagle3"
   validation {
     condition     = !var.enable_speculative_decoding || (var.enable_speculative_decoding && length(var.speculative_model_id) > 0)
     error_message = "When enable_speculative_decoding is true, speculative_model_id must not be empty."
@@ -103,6 +103,12 @@ variable "gpu_type" {
     condition     = contains(["h100", "l4"], var.gpu_type)
     error_message = "Supported GPU types are 'h100' and 'l4'."
   }
+}
+
+variable "dshm_size" {
+  description = "Size of the /dev/shm volume for the vLLM container."
+  type        = string
+  default     = "64Gi"
 }
 
 # -----------------------------------------------------------------------------

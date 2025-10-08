@@ -267,6 +267,10 @@ resource "kubernetes_deployment" "vllm" {
             name       = "model-cache"
             mount_path = "/root/.cache/huggingface"
           }
+          volume_mount {
+            name       = "dshm"
+            mount_path = "/dev/shm"
+          }
         }
         volume {
           name = "model-cache"
@@ -279,6 +283,13 @@ resource "kubernetes_deployment" "vllm" {
           config_map {
             name         = kubernetes_config_map.validate_cache_script.metadata[0].name
             default_mode = "0755"
+          }
+        }
+        volume {
+          name = "dshm"
+          empty_dir {
+            medium     = "Memory"
+            size_limit = var.dshm_size
           }
         }
       }
