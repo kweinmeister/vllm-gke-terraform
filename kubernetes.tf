@@ -107,7 +107,7 @@ resource "kubernetes_deployment" "vllm" {
         node_selector = {
           "cloud.google.com/gke-accelerator" = local.gpu_config.accelerator_type
         }
-        
+
         # Add this toleration for the default GKE GPU taint
         toleration {
           key      = "nvidia.com/gpu"
