@@ -41,7 +41,17 @@ variable "name_prefix" {
   type        = string
   default     = "qwen3-32b"
 }
-
+ 
+variable "replicas" {
+  description = "Number of replicas for the vLLM deployment. Set to 0 to start scaled down, then use the scale_up_command output to scale up when ready."
+  type        = number
+  default     = 1
+  validation {
+    condition     = var.replicas >= 0
+    error_message = "Replicas must be a non-negative integer."
+  }
+}
+ 
 variable "min_gpu_nodes" {
   description = "Minimum number of GPU nodes"
   type        = number

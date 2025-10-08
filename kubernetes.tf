@@ -88,7 +88,7 @@ resource "kubernetes_deployment" "vllm" {
     }
   }
   spec {
-    replicas = 1
+    replicas = var.replicas
     strategy {
       type = "Recreate"
     }

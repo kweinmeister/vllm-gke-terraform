@@ -105,15 +105,18 @@ project_id = "your-gcp-project-id"
 name_prefix = "qwen3-32b"
 
 model_id = "Qwen/Qwen3-32B"
-enable_speculative_decoding = true
-speculative_model_id = "AngelSlim/Qwen3-32B_eagle3"
+enable_speculative_decoding = false
+speculative_model_id = "Zhihu-ai/Zhi-Create-Qwen3-32B-Eagle3"
 model_cache_size = "150Gi"
-gpu_type = "h100"
+gpu_type = "l4"
+replicas = 1
 ```
 
 > 💡 **All other variables** (e.g., `gpu_memory_utilization`, `vllm_dtype`, `max_model_len`) have **default values** defined in `variables.tf`.
 > Override only what you need.
 > See [vLLM CLI options](https://docs.vllm.ai/en/stable/) for full documentation on all parameters.
+>
+> 💡 **To start scaled down**, set `replicas = 0` and use the `scale_up_command` output after model download completes.
 
 
 ### 5. Deploy
@@ -127,7 +130,7 @@ terraform apply
 > - A GKE cluster with spot/on-demand node pools
 > - A PVC for model caching
 > - A Kubernetes Job to download your model
-> - A vLLM deployment (initially scaled to 0 replicas)
+> - A vLLM deployment (scaled to the number of replicas specified by the `replicas` variable, default 1)
 > - An internal Kubernetes service (no public IP)
 
 ### 5a. Configure `kubectl`
@@ -165,8 +168,9 @@ kubectl scale deployment -n $(terraform output -raw namespace) $(terraform outpu
 ```
 
 > 🔍 **Why scale up?**
-> The vLLM deployment is intentionally created with `replicas = 0` to avoid starting before the model is fully downloaded and validated.  
-> Scaling to `1` triggers the init container to verify the `.success` marker file in the PVC — ensuring the model is complete — before launching the inference server.
+> The vLLM deployment can be created with `replicas = 0` to avoid starting before the model is fully downloaded and validated.
+> If you set `replicas = 0`, use the scale_up_command output to scale to `1` which triggers the init container to verify the `.success` marker file in the PVC — ensuring the model is complete — before launching the inference server.
+> If you set `replicas > 0`, the deployment will start immediately after model download completes.
 
 ### 8. Test the API via Port-Forward
 
@@ -234,10 +238,11 @@ All variables are defined in `variables.tf`. Override any in `terraform.tfvars`.
 | | `min_gpu_nodes` | Minimum GPU nodes (autoscale) | `0` |
 | | `max_gpu_nodes` | Maximum GPU nodes (autoscale) | `2` |
 | | `model_cache_size` | Size of model cache PVC | `150Gi` |
-| | `gpu_type` | Type of GPU nodes (`h100` or `l4`) | `h100` |
+| | `gpu_type` | Type of GPU nodes (`h100` or `l4`) | `l4` |
+| | `replicas` | Number of vLLM deployment replicas (set to 0 to start scaled down) | `1` |
 | **Model & vLLM** | `model_id` | Hugging Face model to deploy | `Qwen/Qwen3-32B` |
-| | `enable_speculative_decoding` | Enable draft model for faster inference | `true` |
-| | `speculative_model_id` | Draft model ID (required if enabled) | `AngelSlim/Qwen3-32B_eagle3` |
+| | `enable_speculative_decoding` | Enable draft model for faster inference | `false` |
+| | `speculative_model_id` | Draft model ID (required if enabled) | `Zhihu-ai/Zhi-Create-Qwen3-32B-Eagle3` |
 | | `num_speculative_tokens` | Number of speculative tokens | `5` |
 | | `max_model_len` | Maximum model length | `8192` |
 | | `gpu_memory_utilization` | GPU memory utilization ratio | `0.9` |
