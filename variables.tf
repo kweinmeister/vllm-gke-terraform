@@ -69,7 +69,7 @@ variable "max_model_len" {
 variable "enable_speculative_decoding" {
   description = "Enable speculative decoding with a draft model."
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "speculative_model_id" {
