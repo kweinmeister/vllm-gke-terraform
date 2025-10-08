@@ -233,8 +233,8 @@ All variables are defined in `variables.tf`. Override any in `terraform.tfvars`.
 | Category | Variable | Purpose | Default |
 |--------|----------|---------|---------|
 | **Infrastructure** | `project_id` | Your GCP Project ID | (required) |
-| | `region` | GCP region for cluster | `us-central1` |
-| | `zone` | GCP zone for cluster | `us-central1-c` |
+| | `region` | GCP region for cluster | `us-east1` |
+| | `zone` | GCP zone for cluster | `us-east1-c` |
 | | `min_gpu_nodes` | Minimum GPU nodes (autoscale) | `0` |
 | | `max_gpu_nodes` | Maximum GPU nodes (autoscale) | `2` |
 | | `model_cache_size` | Size of model cache PVC | `150Gi` |
