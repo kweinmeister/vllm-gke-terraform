@@ -240,6 +240,7 @@ All variables are defined in `variables.tf`. Override any in `terraform.tfvars`.
 | | `model_cache_size` | Size of model cache PVC | `150Gi` |
 | | `gpu_type` | Type of GPU nodes (`h100` or `l4`) | `l4` |
 | | `replicas` | Number of vLLM deployment replicas (set to 0 to start scaled down) | `1` |
+| | `name_prefix` | Prefix for all resource names | `qwen3-32b` |
 | **Model & vLLM** | `model_id` | Hugging Face model to deploy | `Qwen/Qwen3-32B` |
 | | `enable_speculative_decoding` | Enable draft model for faster inference | `false` |
 | | `speculative_model_id` | Draft model ID (required if enabled) | `Zhihu-ai/Zhi-Create-Qwen3-32B-Eagle3` |
@@ -248,12 +249,13 @@ All variables are defined in `variables.tf`. Override any in `terraform.tfvars`.
 | | `gpu_memory_utilization` | GPU memory utilization ratio | `0.9` |
 | | `vllm_dtype` | Data type for weights | `bfloat16` |
 | | `vllm_enable_chunked_prefill` | Enable chunked prefill for long prompts | `true` |
-| | `vllm_max_num_seqs` | Max concurrent sequences (batch size) | `256` |
+| | `vllm_max_num_seqs` | Max concurrent sequences (batch size) | `64` |
 | | `vllm_enable_expert_parallel` | Enable expert parallelism | `false` |
 | | `vllm_compilation_level` | Compilation level for vLLM | `3` |
 | | `vllm_hf_overrides` | JSON string of Hugging Face config overrides | `{}` |
 | | `trust_remote_code` | Allow custom code from Hugging Face (risky!) | `true` |
 | | `vllm_use_flashinfer_moe` | Enable FlashInfer CUTLASS MoE kernel | `false` |
+| | `dshm_size` | Size of the /dev/shm volume for the vLLM container | `64Gi` |
 
 > 🔗 **Learn all vLLM options**: https://docs.vllm.ai/en/stable/
 

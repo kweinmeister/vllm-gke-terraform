@@ -171,6 +171,7 @@ resource "kubernetes_deployment" "vllm" {
         container {
           name  = "vllm-container"
           image = "vllm/vllm-openai:v0.11.0"
+
           dynamic "env" {
             for_each = local.vllm_env_vars_simple
             content {

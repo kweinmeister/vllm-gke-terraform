@@ -13,6 +13,10 @@ locals {
   # Simple env vars (with value = string)
   vllm_simple_env = [
     {
+      name  = "PYTORCH_CUDA_ALLOC_CONF"
+      value = "expandable_segments:True"
+    },
+    {
       name  = "LD_LIBRARY_PATH"
       value = "/usr/local/nvidia/lib64"
     },

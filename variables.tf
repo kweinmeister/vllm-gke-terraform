@@ -141,7 +141,7 @@ variable "vllm_enable_chunked_prefill" {
 variable "vllm_max_num_seqs" {
   description = "The maximum number of sequences (requests) to batch together. Higher values can increase throughput but also use more memory."
   type        = number
-  default     = 256
+  default     = 64
 }
 
 variable "vllm_enable_expert_parallel" {
