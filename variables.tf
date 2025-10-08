@@ -131,7 +131,7 @@ variable "vllm_max_num_seqs" {
 variable "vllm_enable_expert_parallel" {
   description = "If true, enables expert parallelism."
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "vllm_compilation_level" {
@@ -143,7 +143,7 @@ variable "vllm_compilation_level" {
 variable "vllm_hf_overrides" {
   description = "A JSON string of Hugging Face configuration overrides."
   type        = string
-  default     = "{\"num_experts\": 128}"
+  default     = "{}"
 }
 
 variable "trust_remote_code" {

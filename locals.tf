@@ -46,7 +46,7 @@ locals {
       memory          = "1872Gi"
     },
     "g2-standard-48" = {
-      local_ssd_count = 1
+      local_ssd_count = 0
       cpu             = "48"
       memory          = "192Gi"
     },
