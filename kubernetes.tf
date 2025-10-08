@@ -176,7 +176,7 @@ resource "kubernetes_deployment" "vllm" {
             name  = "PYTORCH_CUDA_ALLOC_CONF"
             value = "expandable_segments:True"
           }
-          
+
           dynamic "env" {
             for_each = local.vllm_env_vars_simple
             content {
