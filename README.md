@@ -249,7 +249,7 @@ All variables are defined in `variables.tf`. Override any in `terraform.tfvars`.
 | | `gpu_memory_utilization` | GPU memory utilization ratio | `0.9` |
 | | `vllm_dtype` | Data type for weights | `bfloat16` |
 | | `vllm_enable_chunked_prefill` | Enable chunked prefill for long prompts | `true` |
-| | `vllm_max_num_seqs` | Max concurrent sequences (batch size) | `256` |
+| | `vllm_max_num_seqs` | Max concurrent sequences (batch size) | `64` |
 | | `vllm_enable_expert_parallel` | Enable expert parallelism | `false` |
 | | `vllm_compilation_level` | Compilation level for vLLM | `3` |
 | | `vllm_hf_overrides` | JSON string of Hugging Face config overrides | `{}` |
