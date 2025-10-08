@@ -171,6 +171,12 @@ resource "kubernetes_deployment" "vllm" {
         container {
           name  = "vllm-container"
           image = "vllm/vllm-openai:v0.11.0"
+
+          env {
+            name  = "PYTORCH_CUDA_ALLOC_CONF"
+            value = "expandable_segments:True"
+          }
+          
           dynamic "env" {
             for_each = local.vllm_env_vars_simple
             content {
