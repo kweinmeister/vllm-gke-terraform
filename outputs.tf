@@ -1,5 +1,5 @@
 output "cluster_endpoint" {
-  value = google_container_cluster.qwen_cluster.endpoint
+  value = google_container_cluster.primary.endpoint
 }
 
 output "node_pool_names" {
@@ -28,7 +28,7 @@ output "deployment_name" {
 
 output "cluster_ca_certificate" {
   description = "Cluster CA certificate"
-  value       = google_container_cluster.qwen_cluster.master_auth[0].cluster_ca_certificate
+  value       = google_container_cluster.primary.master_auth[0].cluster_ca_certificate
   sensitive   = true
 }
 
@@ -71,4 +71,9 @@ output "model_id" {
 output "job_name" {
   description = "The name of the model downloader Kubernetes job."
   value       = local.job_name
+}
+
+output "tensor_parallel_size" {
+  description = "The actual tensor parallel size used (inferred from the GPU node pool)"
+  value       = local.gpu_config.accelerator_count
 }

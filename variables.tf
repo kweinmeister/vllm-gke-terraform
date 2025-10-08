@@ -33,13 +33,23 @@ variable "hf_token" {
 variable "model_cache_size" {
   description = "Size of the model cache PVC"
   type        = string
-  default     = "2000Gi"
+  default     = "150Gi"
 }
 
 variable "name_prefix" {
   description = "Prefix for all resource names"
   type        = string
-  default     = "qwen3-235b"
+  default     = "qwen3-32b"
+}
+
+variable "replicas" {
+  description = "Number of replicas for the vLLM deployment. Set to 0 to start scaled down, then use the scale_up_command output to scale up when ready."
+  type        = number
+  default     = 1
+  validation {
+    condition     = var.replicas >= 0
+    error_message = "Replicas must be a non-negative integer."
+  }
 }
 
 variable "min_gpu_nodes" {
@@ -51,7 +61,7 @@ variable "min_gpu_nodes" {
 variable "model_id" {
   description = "The Hugging Face model ID to deploy (e.g., Qwen/Qwen2-235B-Instruct)."
   type        = string
-  default     = "Qwen/Qwen3-235B-A22B"
+  default     = "Qwen/Qwen3-32B"
 }
 
 variable "max_gpu_nodes" {
@@ -75,7 +85,7 @@ variable "enable_speculative_decoding" {
 variable "speculative_model_id" {
   description = "The Hugging Face model ID for the speculative draft model (e.g., 'nvidia/Qwen3-235B-A22B-Eagle3')."
   type        = string
-  default     = "lmsys/Qwen3-235B-A22B-EAGLE3"
+  default     = "Zhihu-ai/Zhi-Create-Qwen3-32B-Eagle3"
   validation {
     condition     = !var.enable_speculative_decoding || (var.enable_speculative_decoding && length(var.speculative_model_id) > 0)
     error_message = "When enable_speculative_decoding is true, speculative_model_id must not be empty."
@@ -88,16 +98,27 @@ variable "num_speculative_tokens" {
   default     = 5
 }
 
-variable "tensor_parallel_size" {
-  description = "Tensor parallel size for model sharding"
-  type        = number
-  default     = 8
-}
 
 variable "gpu_memory_utilization" {
   description = "GPU memory utilization ratio"
   type        = number
   default     = 0.9
+}
+
+variable "gpu_type" {
+  description = "The type of GPU to use for the node pools. Supported values: 'h100', 'l4'."
+  type        = string
+  default     = "l4"
+  validation {
+    condition     = contains(["h100", "l4"], var.gpu_type)
+    error_message = "Supported GPU types are 'h100' and 'l4'."
+  }
+}
+
+variable "dshm_size" {
+  description = "Size of the /dev/shm volume for the vLLM container."
+  type        = string
+  default     = "64Gi"
 }
 
 # -----------------------------------------------------------------------------
@@ -126,7 +147,7 @@ variable "vllm_max_num_seqs" {
 variable "vllm_enable_expert_parallel" {
   description = "If true, enables expert parallelism."
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "vllm_compilation_level" {
@@ -138,13 +159,13 @@ variable "vllm_compilation_level" {
 variable "vllm_hf_overrides" {
   description = "A JSON string of Hugging Face configuration overrides."
   type        = string
-  default     = "{\"num_experts\": 128}"
+  default     = "{}"
 }
 
 variable "trust_remote_code" {
   description = "Set to true to trust remote code from the Hugging Face model repository. Required for some models, but should be enabled with caution."
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "vllm_use_flashinfer_moe" {

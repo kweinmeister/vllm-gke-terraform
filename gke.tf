@@ -1,15 +1,16 @@
-resource "google_container_cluster" "qwen_cluster" {
+resource "google_container_cluster" "primary" {
   name     = local.cluster_name
   location = var.zone
   project  = var.project_id
 
   remove_default_node_pool = true
   initial_node_count       = 1
+  deletion_protection      = false
 }
 
 resource "google_container_node_pool" "default_pool" {
   name       = "${local.name_prefix}-default-pool"
-  cluster    = google_container_cluster.qwen_cluster.name
+  cluster    = google_container_cluster.primary.name
   location   = var.zone
   node_count = 1
 
@@ -22,7 +23,7 @@ resource "google_container_node_pool" "gpu_pools" {
   for_each = local.gpu_node_pools
 
   name     = each.key
-  cluster  = google_container_cluster.qwen_cluster.name
+  cluster  = google_container_cluster.primary.name
   location = var.zone
   project  = var.project_id
 
@@ -51,12 +52,6 @@ resource "google_container_node_pool" "gpu_pools" {
     labels = {
       "pool-type" = each.value.pool_type
       "model"     = local.name_prefix
-    }
-
-    taint {
-      key    = "dedicated"
-      value  = each.value.is_spot ? "${each.value.accelerator_type}-spot" : "${each.value.accelerator_type}-ondemand"
-      effect = "NO_SCHEDULE"
     }
 
     guest_accelerator {
