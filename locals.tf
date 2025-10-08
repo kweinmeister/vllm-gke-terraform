@@ -16,6 +16,10 @@ locals {
       name  = "LD_LIBRARY_PATH"
       value = "/usr/local/nvidia/lib64"
     },
+    {
+      name  = "MODEL_ID"
+      value = var.model_id
+    },
     var.vllm_use_flashinfer_moe ? {
       name  = "VLLM_USE_FLASHINFER_MOE_FP16"
       value = "1"

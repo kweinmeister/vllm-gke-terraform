@@ -6,8 +6,11 @@ provider "kubernetes" {
   cluster_ca_certificate = base64decode(google_container_cluster.primary.master_auth[0].cluster_ca_certificate)
 }
 
-resource "kubernetes_namespace" "qwen" {
-  depends_on = [google_container_cluster.primary]
+resource "kubernetes_namespace" "vllm" {
+  depends_on = [
+    google_container_node_pool.default_pool,
+    google_container_node_pool.gpu_pools,
+  ]
 
   metadata {
     name = local.name_prefix
@@ -15,7 +18,7 @@ resource "kubernetes_namespace" "qwen" {
 }
 
 resource "kubernetes_persistent_volume_claim" "model_cache" {
-  depends_on = [kubernetes_namespace.qwen]
+  depends_on = [kubernetes_namespace.vllm]
 
   metadata {
     name      = local.pvc_name
@@ -25,7 +28,7 @@ resource "kubernetes_persistent_volume_claim" "model_cache" {
     access_modes = ["ReadWriteOnce"]
     resources {
       requests = {
-        storage = var.model_cache_size # "2000Gi"
+        storage = var.model_cache_size
       }
     }
     storage_class_name = "premium-rwo"
@@ -34,7 +37,7 @@ resource "kubernetes_persistent_volume_claim" "model_cache" {
   wait_until_bound = false
 }
 resource "kubernetes_service" "vllm" {
-  depends_on = [kubernetes_namespace.qwen]
+  depends_on = [kubernetes_namespace.vllm]
 
   metadata {
     name      = local.service_name
@@ -48,12 +51,13 @@ resource "kubernetes_service" "vllm" {
       port        = 8000
       target_port = 8000
     }
-    # Expose the service internally. The GKE Ingress will route traffic to this service.
     type = "ClusterIP"
   }
 }
 
 resource "kubernetes_config_map" "validate_cache_script" {
+  depends_on = [kubernetes_namespace.vllm]
+
   metadata {
     name      = "${local.name_prefix}-validate-cache-script"
     namespace = local.name_prefix
@@ -65,7 +69,7 @@ resource "kubernetes_config_map" "validate_cache_script" {
 
 resource "kubernetes_deployment" "vllm" {
   depends_on = [
-    kubernetes_namespace.qwen,
+    kubernetes_namespace.vllm,
     kubernetes_secret.hf_token,
     kubernetes_persistent_volume_claim.model_cache,
   ]
@@ -288,7 +292,7 @@ resource "kubernetes_deployment" "vllm" {
 }
 
 resource "kubernetes_secret" "hf_token" {
-  depends_on = [kubernetes_namespace.qwen]
+  depends_on = [kubernetes_namespace.vllm]
 
   metadata {
     name      = local.secret_name

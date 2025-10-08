@@ -2,6 +2,8 @@
 
 # 1. ConfigMap to hold the Python download script
 resource "kubernetes_config_map" "model_downloader_script" {
+  depends_on = [kubernetes_namespace.vllm]
+
   metadata {
     name      = "${local.name_prefix}-download-script"
     namespace = local.name_prefix
@@ -118,7 +120,7 @@ resource "kubernetes_job" "model_downloader_job" {
   }
 
   depends_on = [
-    kubernetes_namespace.qwen,
+    kubernetes_namespace.vllm,
     kubernetes_persistent_volume_claim.model_cache,
     kubernetes_secret.hf_token,
     kubernetes_config_map.model_downloader_script,
