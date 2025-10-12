@@ -20,10 +20,7 @@ This Terraform module provisions:
 
 Each resource is named using your `name_prefix`, enabling safe multi-model deployments.
 
-> ⚠️ **Hardware**: The default configuration uses either:
-> - `a3-highgpu-8g` nodes with **8x NVIDIA H100 80GB GPUs** (for `gpu_type = "h100"`)
-> - `g2-standard-48` nodes with **4x NVIDIA L4 24GB GPUs** (for `gpu_type = "l4"`)
-> This is a **high-cost** infrastructure. Proceed with caution.
+> **Hardware**: The default configuration uses `g2-standard-48` nodes with **4x NVIDIA L4 24GB GPUs**. For higher performance, `a3-highgpu-8g` nodes with **8x NVIDIA H100 80GB GPUs** are available. See the **Cost Warning** section below.
 
 ---
 
@@ -213,10 +210,11 @@ curl -X POST \
 
 ## 💰 Cost Warning
 
-> ⚠️ **This deployment uses either:**
-> - `a3-highgpu-8g` nodes with 8x NVIDIA H100 80GB GPUs (for H100 configuration)
-> - `g2-standard-48` nodes with 4x NVIDIA L4 24GB GPUs (for L4 configuration)
-> Leaving this running overnight or unattended **will result in charges**.
+> ⚠️ This deployment defaults to `g2-standard-48` nodes (4x NVIDIA L4 24GB GPUs), a cost-effective starting point.
+>
+> The high-performance `h100` option uses `a3-highgpu-8g` nodes (8x NVIDIA H100 80GB GPUs), which are significantly more expensive.
+>
+> Leaving either configuration running unattended **will result in significant charges**.
 
 ✅ **Before deploying:**
 - Check your **GCP quota** for GPUs in your zone:  
