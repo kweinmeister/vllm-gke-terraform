@@ -9,7 +9,6 @@ provider "kubernetes" {
 resource "kubernetes_namespace" "vllm" {
   depends_on = [
     google_container_node_pool.default_pool,
-    google_container_node_pool.gpu_pools,
   ]
 
   metadata {
