@@ -57,6 +57,11 @@ output "region" {
   value       = var.region
 }
 
+output "zone" {
+  description = "The GCP zone of the GKE cluster"
+  value       = var.zone
+}
+
 
 output "port_forward_command" {
   description = "Run this command to access the vLLM API locally:"
