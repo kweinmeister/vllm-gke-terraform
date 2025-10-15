@@ -135,7 +135,7 @@ terraform apply
 After the cluster is created, configure `kubectl`:
 
 ```bash
-gcloud container clusters get-credentials $(terraform output -raw cluster_name) --region $(terraform output -raw region)
+gcloud container clusters get-credentials $(terraform output -raw cluster_name) --zone $(terraform output -raw zone)
 ```
 
 ### 6. Wait for model download to finish
